@@ -1,4 +1,8 @@
 v.1.0.0
-   - Initial release of DISourceGenerator
-   - High-performance fixed dependency injection via source generation
-   - Compile-time dependency resolution with minimal runtime overhead
+   - Initial stable release
+   - Source-generated dependency injection with compile-time resolution
+   - Support for [Singleton] and [Instance] attributes on classes
+   - Assembly-level registration for external types
+   - Optional immutable builder API for manual factory registration
+   - Comprehensive analyzer for detecting configuration errors
+   - Zero runtime reflection, minimal overhead
