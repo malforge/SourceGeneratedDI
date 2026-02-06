@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>11</LangVersion>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <AssemblyName>Mal.SourceGeneratedDI</AssemblyName>
+        
+        <!-- NuGet Package Configuration -->
+        <PackageId>Mal.SourceGeneratedDI</PackageId>
+        <Version>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/PackageVersion.txt"))</Version>
+        <Authors>Morten Aune Lyrstad</Authors>
+        <Title>Source Generated Dependency Injection</Title>
+        <Description>A lightweight source generator for high-performance fixed dependency injection with compile-time resolution and minimal runtime overhead.</Description>
+        <Copyright>2026 Morten Aune Lyrstad</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/malware-dev/SourceGeneratedDI</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/malware-dev/SourceGeneratedDI</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>dependency-injection;source-generator;roslyn;di;ioc;performance</PackageTags>
+        <PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/ReleaseNotes.txt"))</PackageReleaseNotes>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        
+        <!-- Source Generator Packaging -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <DevelopmentDependency>true</DevelopmentDependency>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" PrivateAssets="all" />
+    </ItemGroup>
+    
+    <!-- Package the README -->
+    <ItemGroup>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+    
+    <!-- Package the generator in the analyzer directory -->
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+    <ItemGroup>
+      <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+      <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+    </ItemGroup>
+    
+</Project>

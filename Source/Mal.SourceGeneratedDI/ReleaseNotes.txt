@@ -1,0 +1,4 @@
+v.1.0.0
+   - Initial release of DISourceGenerator
+   - High-performance fixed dependency injection via source generation
+   - Compile-time dependency resolution with minimal runtime overhead

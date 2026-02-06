@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Solution>
+  <Folder Name="/.docs/">
+    <File Path="..\README.md" />
+  </Folder>
+  <Project Path="Mal.SourceGeneratedDI\Mal.SourceGeneratedDI.csproj" Type="Classic C#" />
+  <Project Path="Mal.SourceGeneratedDI.Tests\Mal.SourceGeneratedDI.Tests.csproj" Type="Classic C#" />
+</Solution>
