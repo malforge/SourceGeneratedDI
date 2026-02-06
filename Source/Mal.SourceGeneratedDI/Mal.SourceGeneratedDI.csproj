@@ -20,6 +20,7 @@
         <PackageTags>dependency-injection;source-generator;roslyn;di;ioc;performance</PackageTags>
         <PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/ReleaseNotes.txt"))</PackageReleaseNotes>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <NoPackageAnalysis>true</NoPackageAnalysis>
         
         <!-- Source Generator Packaging -->
         <IncludeBuildOutput>false</IncludeBuildOutput>
