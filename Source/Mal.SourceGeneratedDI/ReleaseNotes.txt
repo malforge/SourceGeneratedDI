@@ -1,3 +1,8 @@
+v2.0.1-pre.1
+   - Removed generated `<AssemblyName>GeneratedContainerFactory` class
+   - Added comprehensive XML documentation to generated code
+   - Version synced with Abstractions package (2.0.1) for clarity
+
 v2.0.0-pre.4
    - Note: Both packages must be referenced explicitly (Abstractions dependency cannot auto-flow with source generators)
 
@@ -11,6 +16,6 @@ v2.0.0-pre.1
    - Breaking: switched from generated per-assembly container bodies to generated registration sources.
    - Breaking: source-generated registrations now compose through `IRegistrationSource` and `DependencyContainerBuilder`.
    - Breaking: runtime attributes/contracts moved to `Mal.SourceGeneratedDI.Abstractions`.
-   - Added generated `<AssemblyName>GeneratedRegistry` and `<AssemblyName>GeneratedContainerFactory`.
+   - Added generated `<AssemblyName>GeneratedRegistry`.
    - Added generated partial hook for advanced assembly-level manual factories.
    - Improved cross-assembly composition support by default.

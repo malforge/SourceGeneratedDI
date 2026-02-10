@@ -42,7 +42,7 @@ public class DependencyRegistryGenerator : IIncrementalGenerator
             {
                 var ((items, options), names) = data;
 
-                var producer = new RegistryProducer(items, options, names.RegistryClassName, names.FactoryClassName);
+                var producer = new RegistryProducer(items, options, names.RegistryClassName);
                 spc.AddSource("DependencyRegistry.g.cs", producer.Produce());
             });
     }
@@ -145,8 +145,7 @@ public class DependencyRegistryGenerator : IIncrementalGenerator
         var assemblyName = compilation.AssemblyName ?? "Assembly";
         var sanitized = SanitizeIdentifier(assemblyName);
         var registryClassName = $"{sanitized}GeneratedRegistry";
-        var factoryClassName = $"{sanitized}GeneratedContainerFactory";
-        return new OutputNames(registryClassName, factoryClassName);
+        return new OutputNames(registryClassName);
     }
     
     private static string SanitizeIdentifier(string input)
@@ -182,12 +181,10 @@ public class DependencyRegistryGenerator : IIncrementalGenerator
     public readonly struct OutputNames
     {
         public string RegistryClassName { get; }
-        public string FactoryClassName { get; }
         
-        public OutputNames(string registryClassName, string factoryClassName)
+        public OutputNames(string registryClassName)
         {
             RegistryClassName = registryClassName;
-            FactoryClassName = factoryClassName;
         }
     }
 

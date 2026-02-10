@@ -134,6 +134,11 @@ public sealed class DependencyContainerBuilder : IServiceRegistry
     private IServiceProvider? _fallbackProvider;
     private DuplicateRegistrationPolicy _duplicateRegistrationPolicy = DuplicateRegistrationPolicy.Throw;
 
+    /// <summary>
+    /// Adds a registration source to the container.
+    /// </summary>
+    /// <param name="source">The registration source to add.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     public DependencyContainerBuilder AddRegistry(IRegistrationSource source)
     {
         if (source == null)
@@ -143,24 +148,45 @@ public sealed class DependencyContainerBuilder : IServiceRegistry
         return this;
     }
 
+    /// <summary>
+    /// Adds a registration source to the container by creating an instance of the specified type.
+    /// </summary>
+    /// <typeparam name="T">The registration source type to instantiate and add.</typeparam>
+    /// <returns>The builder instance for method chaining.</returns>
     public DependencyContainerBuilder AddRegistry<T>() where T : class, IRegistrationSource, new()
     {
         return AddRegistry(new T());
     }
 
+    /// <summary>
+    /// Sets the policy for handling duplicate service registrations.
+    /// </summary>
+    /// <param name="policy">The duplicate registration policy to use.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     public DependencyContainerBuilder WithDuplicatePolicy(DuplicateRegistrationPolicy policy)
     {
         _duplicateRegistrationPolicy = policy;
         return this;
     }
 
+    /// <summary>
+    /// Configures a fallback service provider for resolving services not registered in this container.
+    /// </summary>
+    /// <param name="fallbackProvider">The fallback service provider.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     public DependencyContainerBuilder UseFallback(IServiceProvider fallbackProvider)
     {
         _fallbackProvider = fallbackProvider ?? throw new ArgumentNullException(nameof(fallbackProvider));
         return this;
     }
 
-    public DependencyContainerBuilder Register<TService>(Func<TService> factory) where TService : class
+    /// <summary>
+    /// Registers a singleton service with a factory function.
+    /// </summary>
+    /// <typeparam name="TService">The service type to register.</typeparam>
+    /// <param name="factory">The factory function that creates the service instance.</param>
+    /// <returns>The builder instance for method chaining.</returns>
+    public DependencyContainerBuilder RegisterSingleton<TService>(Func<TService> factory) where TService : class
     {
         if (factory == null)
             throw new ArgumentNullException(nameof(factory));
@@ -169,7 +195,13 @@ public sealed class DependencyContainerBuilder : IServiceRegistry
         return this;
     }
 
-    public DependencyContainerBuilder Register<TService>(Func<IDependencyContainer, TService> factory) where TService : class
+    /// <summary>
+    /// Registers a singleton service with a factory function that receives the container.
+    /// </summary>
+    /// <typeparam name="TService">The service type to register.</typeparam>
+    /// <param name="factory">The factory function that creates the service instance.</param>
+    /// <returns>The builder instance for method chaining.</returns>
+    public DependencyContainerBuilder RegisterSingleton<TService>(Func<IDependencyContainer, TService> factory) where TService : class
     {
         if (factory == null)
             throw new ArgumentNullException(nameof(factory));
@@ -178,12 +210,48 @@ public sealed class DependencyContainerBuilder : IServiceRegistry
         return this;
     }
 
+    /// <summary>
+    /// Registers a transient service with a factory function. A new instance is created on each resolve.
+    /// </summary>
+    /// <typeparam name="TService">The service type to register.</typeparam>
+    /// <param name="factory">The factory function that creates the service instance.</param>
+    /// <returns>The builder instance for method chaining.</returns>
+    public DependencyContainerBuilder RegisterInstance<TService>(Func<TService> factory) where TService : class
+    {
+        if (factory == null)
+            throw new ArgumentNullException(nameof(factory));
+
+        AddInstance(typeof(TService), _ => factory());
+        return this;
+    }
+
+    /// <summary>
+    /// Registers a transient service with a factory function that receives the container. A new instance is created on each resolve.
+    /// </summary>
+    /// <typeparam name="TService">The service type to register.</typeparam>
+    /// <param name="factory">The factory function that creates the service instance.</param>
+    /// <returns>The builder instance for method chaining.</returns>
+    public DependencyContainerBuilder RegisterInstance<TService>(Func<IDependencyContainer, TService> factory) where TService : class
+    {
+        if (factory == null)
+            throw new ArgumentNullException(nameof(factory));
+
+        AddInstance(typeof(TService), factory);
+        return this;
+    }
+
+    /// <inheritdoc />
     public void AddSingleton(Type serviceType, Func<IDependencyContainer, object> factory)
         => Add(serviceType, new Registration(factory, isInstance: false));
 
+    /// <inheritdoc />
     public void AddInstance(Type serviceType, Func<IDependencyContainer, object> factory)
         => Add(serviceType, new Registration(factory, isInstance: true));
 
+    /// <summary>
+    /// Builds the final immutable container from the registered services.
+    /// </summary>
+    /// <returns>A new dependency container instance.</returns>
     public DependencyContainer Build()
         => new(_registrations.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), _fallbackProvider);
 
@@ -234,34 +302,16 @@ public sealed class DependencyContainer : IDependencyContainer, IServiceProvider
         _singletons[typeof(IDependencyContainer)] = this;
         _singletons[typeof(IServiceProvider)] = this;
     }
-    
-    public DependencyContainer()
-        : this(new Dictionary<Type, Registration>(), null)
-    {
-    }
-    
-    public DependencyContainer(Func<DependencyContainerBuilder, DependencyContainerBuilder> configure)
-        : this(BuildRegistrations(configure), null)
-    {
-    }
-    
-    private static Dictionary<Type, Registration> BuildRegistrations(Func<DependencyContainerBuilder, DependencyContainerBuilder> configure)
-    {
-        if (configure == null)
-            throw new ArgumentNullException(nameof(configure));
 
-        var builder = new DependencyContainerBuilder();
-        builder = configure(builder);
-        var container = builder.Build();
-        return container._registrations;
-    }
-
+    /// <inheritdoc />
     public object? GetService(Type serviceType)
         => TryResolve(serviceType, out var instance) ? instance : null;
 
+    /// <inheritdoc />
     public T Resolve<T>() where T : class
         => (T)Resolve(typeof(T));
 
+    /// <inheritdoc />
     public bool TryResolve<T>(out T? instance) where T : class
     {
         if (TryResolve(typeof(T), out var value))
@@ -274,6 +324,7 @@ public sealed class DependencyContainer : IDependencyContainer, IServiceProvider
         return false;
     }
 
+    /// <inheritdoc />
     public object Resolve(Type serviceType)
     {
         if (TryResolve(serviceType, out var instance))
@@ -282,6 +333,7 @@ public sealed class DependencyContainer : IDependencyContainer, IServiceProvider
         throw new InvalidOperationException($"Service of type {serviceType} is not registered.");
     }
 
+    /// <inheritdoc />
     public bool TryResolve(Type serviceType, out object? instance)
     {
         if (serviceType == null)

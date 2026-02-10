@@ -12,18 +12,15 @@ public class RegistryProducer
     readonly ImmutableArray<DependencyRegistryGenerator.Item> _items;
     readonly DependencyRegistryGenerator.ContainerOptions _options;
     readonly string _registryClassName;
-    readonly string _factoryClassName;
 
     public RegistryProducer(
         ImmutableArray<DependencyRegistryGenerator.Item> items,
         DependencyRegistryGenerator.ContainerOptions options,
-        string registryClassName,
-        string factoryClassName)
+        string registryClassName)
     {
         _items = items;
         _options = options;
         _registryClassName = registryClassName;
-        _factoryClassName = factoryClassName;
     }
     
     const string RegistryTemplate =
@@ -46,22 +43,12 @@ public class RegistryProducer
                 AddManualFactories(registry);
             }}
 
+            /// <summary>
+            /// Partial method hook for adding manual factory registrations.
+            /// Implement this method in a separate partial class to add custom registrations.
+            /// </summary>
+            /// <param name="registry">The service registry to add registrations to.</param>
             static partial void AddManualFactories(IServiceRegistry registry);
-        }}
-        
-        /// <summary>
-        /// Convenience factory for creating a container with this assembly's generated registrations.
-        /// </summary>
-        {{VISIBILITY}} static class {{FACTORY_CLASS}}
-        {{
-            public static DependencyContainer Create(Func<DependencyContainerBuilder, DependencyContainerBuilder>? configure = null)
-            {{
-                var builder = new DependencyContainerBuilder();
-                builder.AddRegistry(new {{REGISTRY_CLASS}}());
-                if (configure is not null)
-                    builder = configure(builder);
-                return builder.Build();
-            }}
         }}
         """;
 
@@ -151,7 +138,6 @@ public class RegistryProducer
         
         var result = RegistryTemplate
             .Replace("{{REGISTRY_CLASS}}", _registryClassName)
-            .Replace("{{FACTORY_CLASS}}", _factoryClassName)
             .Replace("{{VISIBILITY}}", visibility)
             .Replace("{{REGISTRATIONS}}", string.Join("\n                ", items))
             .Replace("{{", "{")

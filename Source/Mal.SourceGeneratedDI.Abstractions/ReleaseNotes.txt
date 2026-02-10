@@ -1,3 +1,10 @@
+v2.0.1
+   - Breaking: Removed `DependencyContainer.Create()` static method and direct constructors - use `DependencyContainerBuilder` only
+   - Breaking: Renamed `Register<T>()` methods to `RegisterSingleton<T>()` and added `RegisterInstance<T>()` for explicit lifetime control
+   - Added generic `AddRegistry<T>()` overload for cleaner syntax
+   - Added `WithDuplicatePolicy()` fluent method to replace property setter
+   - Added comprehensive XML documentation to all public members
+
 v2.0.0
    - Breaking: introduces required shared runtime contract package for v2 architecture.
    - Added DI attributes shared across projects (`Singleton`, `Instance`, assembly-level variants).

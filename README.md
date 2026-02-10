@@ -249,8 +249,8 @@ Sometimes you need to register services at runtime:
 ```csharp
 var container = new DependencyContainerBuilder()
     .AddRegistry<MyAppGeneratedRegistry>()
-    .Register<IClock>(() => new UtcClock())
-    .Register<IConfig>(() => LoadConfigFromFile())
+    .RegisterSingleton<IClock>(() => new UtcClock())
+    .RegisterInstance<IConfig>(() => LoadConfigFromFile())
     .Build();
 ```
 
