@@ -132,8 +132,7 @@ public sealed class DependencyContainerBuilder : IServiceRegistry
 {
     private readonly Dictionary<Type, Registration> _registrations = new();
     private IServiceProvider? _fallbackProvider;
-
-    public DuplicateRegistrationPolicy DuplicateRegistrationPolicy { get; set; } = DuplicateRegistrationPolicy.Throw;
+    private DuplicateRegistrationPolicy _duplicateRegistrationPolicy = DuplicateRegistrationPolicy.Throw;
 
     public DependencyContainerBuilder AddRegistry(IRegistrationSource source)
     {
@@ -141,6 +140,17 @@ public sealed class DependencyContainerBuilder : IServiceRegistry
             throw new ArgumentNullException(nameof(source));
 
         source.Contribute(this);
+        return this;
+    }
+
+    public DependencyContainerBuilder AddRegistry<T>() where T : class, IRegistrationSource, new()
+    {
+        return AddRegistry(new T());
+    }
+
+    public DependencyContainerBuilder WithDuplicatePolicy(DuplicateRegistrationPolicy policy)
+    {
+        _duplicateRegistrationPolicy = policy;
         return this;
     }
 
@@ -190,7 +200,7 @@ public sealed class DependencyContainerBuilder : IServiceRegistry
             return;
         }
 
-        switch (DuplicateRegistrationPolicy)
+        switch (_duplicateRegistrationPolicy)
         {
             case DuplicateRegistrationPolicy.Throw:
                 throw new InvalidOperationException($"Service of type {serviceType} is already registered.");
@@ -200,7 +210,7 @@ public sealed class DependencyContainerBuilder : IServiceRegistry
                 _registrations[serviceType] = registration;
                 return;
             default:
-                throw new InvalidOperationException($"Unknown duplicate policy: {DuplicateRegistrationPolicy}.");
+                throw new InvalidOperationException($"Unknown duplicate policy: {_duplicateRegistrationPolicy}.");
         }
     }
 }
@@ -233,13 +243,6 @@ public sealed class DependencyContainer : IDependencyContainer, IServiceProvider
     public DependencyContainer(Func<DependencyContainerBuilder, DependencyContainerBuilder> configure)
         : this(BuildRegistrations(configure), null)
     {
-    }
-
-    public static DependencyContainer Create(Action<DependencyContainerBuilder>? configure = null)
-    {
-        var builder = new DependencyContainerBuilder();
-        configure?.Invoke(builder);
-        return builder.Build();
     }
     
     private static Dictionary<Type, Registration> BuildRegistrations(Func<DependencyContainerBuilder, DependencyContainerBuilder> configure)

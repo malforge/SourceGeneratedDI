@@ -42,14 +42,6 @@
                           PrivateAssets="all" />
     </ItemGroup>
     
-    <!-- Add package dependency metadata -->
-    <ItemGroup>
-        <PackageReference Include="Mal.SourceGeneratedDI.Abstractions" 
-                          Version="$(Version)"
-                          PrivateAssets="none"
-                          IncludeAssets="none" />
-    </ItemGroup>
-    
     <!-- Package the README -->
     <ItemGroup>
         <None Include="..\..\README.md" Pack="true" PackagePath="\" />

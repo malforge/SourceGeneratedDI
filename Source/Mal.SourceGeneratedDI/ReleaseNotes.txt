@@ -1,8 +1,11 @@
+v2.0.0-pre.4
+   - Note: Both packages must be referenced explicitly (Abstractions dependency cannot auto-flow with source generators)
+
 v2.0.0-pre.3
-   - Another attempt at fixing the Abstractions package flow as an automatic dependency.
+   - Another attempt at fixing the Abstractions package flow as an automatic dependency
 
 v2.0.0-pre.2
-   - Fixed: Abstractions package now properly flows as automatic dependency
+   - Reverted automatic dependency - both packages must be referenced (standard for source generators)
 
 v2.0.0-pre.1
    - Breaking: switched from generated per-assembly container bodies to generated registration sources.
