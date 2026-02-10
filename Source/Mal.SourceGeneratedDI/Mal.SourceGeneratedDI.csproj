@@ -38,14 +38,17 @@
     
     <ItemGroup>
         <ProjectReference Include="..\Mal.SourceGeneratedDI.Abstractions\Mal.SourceGeneratedDI.Abstractions.csproj" 
-                          PrivateAssets="none"
                           ReferenceOutputAssembly="false"
-                          SetTargetFramework="TargetFramework=netstandard2.0" />
+                          PrivateAssets="all" />
     </ItemGroup>
     
-    <PropertyGroup>
-        <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
-    </PropertyGroup>
+    <!-- Add package dependency metadata -->
+    <ItemGroup>
+        <PackageReference Include="Mal.SourceGeneratedDI.Abstractions" 
+                          Version="$(Version)"
+                          PrivateAssets="none"
+                          IncludeAssets="none" />
+    </ItemGroup>
     
     <!-- Package the README -->
     <ItemGroup>

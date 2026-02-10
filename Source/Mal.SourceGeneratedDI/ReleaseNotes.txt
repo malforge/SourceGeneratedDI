@@ -1,3 +1,6 @@
+v2.0.0-pre.3
+   - Another attempt at fixing the Abstractions package flow as an automatic dependency.
+
 v2.0.0-pre.2
    - Fixed: Abstractions package now properly flows as automatic dependency
 
