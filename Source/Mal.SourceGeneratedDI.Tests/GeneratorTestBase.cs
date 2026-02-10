@@ -17,6 +17,7 @@ public abstract class GeneratorTestBase
         CSharpSourceGeneratorTest<DependencyRegistryGenerator, DefaultVerifier> test,
         string testName)
     {
+        test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(IDependencyContainer).Assembly.Location));
         await test.RunAsync();
         
         // Also manually run generator to capture output
@@ -51,6 +52,7 @@ public abstract class GeneratorTestBase
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Collections.Generic.List<>).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(IDependencyContainer).Assembly.Location),
         };
 
         return CSharpCompilation.Create(

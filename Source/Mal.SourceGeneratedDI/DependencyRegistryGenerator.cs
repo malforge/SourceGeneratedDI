@@ -1,4 +1,6 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
+using System.Globalization;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -9,9 +11,6 @@ public class DependencyRegistryGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Pregenerate the attribute
-        context.RegisterPostInitializationOutput(ctx => ctx.AddSource("DependencyRegistryAttribute.g.cs", FrameworkProducer.Instance.Produce()));
-
         // Collect class-level attributes
         var classAttributes = context.SyntaxProvider.CreateSyntaxProvider(
                 static (node, _) => node is ClassDeclarationSyntax { AttributeLists.Count: > 0 },
@@ -27,19 +26,23 @@ public class DependencyRegistryGenerator : IIncrementalGenerator
         var containerOptions = context.CompilationProvider
             .Select(static (compilation, _) => GetContainerOptions(compilation));
 
+        // Collect naming metadata
+        var outputNames = context.CompilationProvider
+            .Select(static (compilation, _) => GetOutputNames(compilation));
+
         // Combine all sources
         var allItems = classAttributes.Collect()
             .Combine(assemblyAttributes)
             .Select(static (pair, _) => pair.Left.AddRange(pair.Right))
-            .Combine(containerOptions);
+            .Combine(containerOptions)
+            .Combine(outputNames);
 
         context.RegisterSourceOutput(allItems,
             static (spc, data) =>
             {
-                var (items, options) = data;
-                if (items.Length == 0) return;
+                var ((items, options), names) = data;
 
-                var producer = new RegistryProducer(items, options);
+                var producer = new RegistryProducer(items, options, names.RegistryClassName, names.FactoryClassName);
                 spc.AddSource("DependencyRegistry.g.cs", producer.Produce());
             });
     }
@@ -107,11 +110,11 @@ public class DependencyRegistryGenerator : IIncrementalGenerator
 
     private static ContainerOptions GetContainerOptions(Compilation compilation)
     {
-        var options = new ContainerOptions(true, false); // Default: public, builder disabled
+        var options = new ContainerOptions(true, false); // Default: public
 
         foreach (var attr in compilation.Assembly.GetAttributes())
         {
-            if (attr.AttributeClass?.Name == "DependencyContainerOptionsAttribute")
+            if (attr.AttributeClass?.Name is "DependencyContainerOptionsAttribute" or "DependencyContainerOptions")
             {
                 // Check for Visibility property
                 foreach (var namedArg in attr.NamedArguments)
@@ -120,8 +123,14 @@ public class DependencyRegistryGenerator : IIncrementalGenerator
                     {
                         options = new ContainerOptions(visibility == 0, options.EnableBuilder); // 0 = Public, 1 = Internal
                     }
+                    else if (namedArg.Key == "Visibility" && namedArg.Value.Value is not null)
+                    {
+                        var visibilityValue = System.Convert.ToInt32(namedArg.Value.Value, CultureInfo.InvariantCulture);
+                        options = new ContainerOptions(visibilityValue == 0, options.EnableBuilder);
+                    }
                     else if (namedArg.Key == "EnableBuilder" && namedArg.Value.Value is bool enableBuilder)
                     {
+                        // Kept for backwards compatibility with existing attribute payloads.
                         options = new ContainerOptions(options.IsPublic, enableBuilder);
                     }
                 }
@@ -129,6 +138,33 @@ public class DependencyRegistryGenerator : IIncrementalGenerator
         }
 
         return options;
+    }
+    
+    private static OutputNames GetOutputNames(Compilation compilation)
+    {
+        var assemblyName = compilation.AssemblyName ?? "Assembly";
+        var sanitized = SanitizeIdentifier(assemblyName);
+        var registryClassName = $"{sanitized}GeneratedRegistry";
+        var factoryClassName = $"{sanitized}GeneratedContainerFactory";
+        return new OutputNames(registryClassName, factoryClassName);
+    }
+    
+    private static string SanitizeIdentifier(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return "Assembly";
+
+        var builder = new StringBuilder(input.Length);
+        var first = input[0];
+        builder.Append(char.IsLetter(first) || first == '_' ? first : '_');
+
+        for (var i = 1; i < input.Length; i++)
+        {
+            var c = input[i];
+            builder.Append(char.IsLetterOrDigit(c) || c == '_' ? c : '_');
+        }
+
+        return builder.ToString();
     }
 
     public readonly struct ContainerOptions
@@ -140,6 +176,18 @@ public class DependencyRegistryGenerator : IIncrementalGenerator
         {
             IsPublic = isPublic;
             EnableBuilder = enableBuilder;
+        }
+    }
+    
+    public readonly struct OutputNames
+    {
+        public string RegistryClassName { get; }
+        public string FactoryClassName { get; }
+        
+        public OutputNames(string registryClassName, string factoryClassName)
+        {
+            RegistryClassName = registryClassName;
+            FactoryClassName = factoryClassName;
         }
     }
 

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
@@ -34,6 +34,10 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" PrivateAssets="all" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="..\Mal.SourceGeneratedDI.Abstractions\Mal.SourceGeneratedDI.Abstractions.csproj" />
     </ItemGroup>
     
     <!-- Package the README -->

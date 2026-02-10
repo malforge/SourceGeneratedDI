@@ -1,8 +1,7 @@
-v.1.0.0
-   - Initial stable release
-   - Source-generated dependency injection with compile-time resolution
-   - Support for [Singleton] and [Instance] attributes on classes
-   - Assembly-level registration for external types
-   - Optional immutable builder API for manual factory registration
-   - Comprehensive analyzer for detecting configuration errors
-   - Zero runtime reflection, minimal overhead
+v2.0.0
+   - Breaking: switched from generated per-assembly container bodies to generated registration sources.
+   - Breaking: source-generated registrations now compose through `IRegistrationSource` and `DependencyContainerBuilder`.
+   - Breaking: runtime attributes/contracts moved to `Mal.SourceGeneratedDI.Abstractions`.
+   - Added generated `<AssemblyName>GeneratedRegistry` and `<AssemblyName>GeneratedContainerFactory`.
+   - Added generated partial hook for advanced assembly-level manual factories.
+   - Improved cross-assembly composition support by default.

@@ -38,8 +38,9 @@ public class GeneratedCodeInspectionTests
         File.WriteAllText(outputPath, generatedCode);
 
         TestContext.Out.WriteLine($"✓ Builder ENABLED code written to: {outputPath}");
-        Assert.That(generatedCode, Does.Contain("DependencyContainerBuilder"));
-        Assert.That(generatedCode, Does.Contain("public partial class DependencyContainer"));
+        Assert.That(generatedCode, Does.Contain("public sealed partial class TestAssemblyGeneratedRegistry"));
+        Assert.That(generatedCode, Does.Contain("public void Contribute(IServiceRegistry registry)"));
+        Assert.That(generatedCode, Does.Contain("static partial void AddManualFactories(IServiceRegistry registry);"));
     }
 
     [Test]
@@ -61,9 +62,8 @@ public class GeneratedCodeInspectionTests
         File.WriteAllText(outputPath, generatedCode);
 
         TestContext.Out.WriteLine($"✓ Builder DISABLED code written to: {outputPath}");
-        Assert.That(generatedCode, Does.Not.Contain("DependencyContainerBuilder"));
-        Assert.That(generatedCode, Does.Contain("public partial class DependencyContainer"));
-        Assert.That(generatedCode, Does.Contain("public DependencyContainer()"));
+        Assert.That(generatedCode, Does.Contain("public static class TestAssemblyGeneratedContainerFactory"));
+        Assert.That(generatedCode, Does.Contain("builder.AddRegistry(new TestAssemblyGeneratedRegistry());"));
     }
 
     [Test]
@@ -87,7 +87,8 @@ public class GeneratedCodeInspectionTests
         File.WriteAllText(outputPath, generatedCode);
 
         TestContext.Out.WriteLine($"✓ INTERNAL visibility code written to: {outputPath}");
-        Assert.That(generatedCode, Does.Contain("internal partial class DependencyContainer"));
+        Assert.That(generatedCode, Does.Contain("TestAssemblyGeneratedRegistry"));
+        Assert.That(generatedCode, Does.Contain("TestAssemblyGeneratedContainerFactory"));
     }
 
     private string GenerateCode(string source)
@@ -97,7 +98,8 @@ public class GeneratedCodeInspectionTests
         var references = new[]
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location)
+            MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(IDependencyContainer).Assembly.Location)
         };
 
         var compilation = CSharpCompilation.Create(

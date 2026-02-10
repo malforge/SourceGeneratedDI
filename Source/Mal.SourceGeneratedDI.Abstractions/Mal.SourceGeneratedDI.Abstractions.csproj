@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>11</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Mal.SourceGeneratedDI.Abstractions</AssemblyName>
+    <RootNamespace>Mal.SourceGeneratedDI</RootNamespace>
+
+    <!-- NuGet Package Configuration -->
+    <PackageId>Mal.SourceGeneratedDI.Abstractions</PackageId>
+    <Version>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/PackageVersion.txt"))</Version>
+    <Authors>Morten Aune Lyrstad</Authors>
+    <Title>Source Generated DI Abstractions</Title>
+    <Description>Runtime abstractions and container infrastructure for Mal.SourceGeneratedDI.</Description>
+    <Copyright>2026 Morten Aune Lyrstad</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/malware-dev/SourceGeneratedDI</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/malware-dev/SourceGeneratedDI</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>dependency-injection;di;ioc;abstractions;runtime</PackageTags>
+    <PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/ReleaseNotes.txt"))</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+
+    <!-- Standard runtime package -->
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+  
+  <!-- Package the README -->
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

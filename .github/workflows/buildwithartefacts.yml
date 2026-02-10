@@ -99,13 +99,16 @@ jobs:
           dotnet-version: 9.x
 
       - name: Restore dependencies
-        run: dotnet restore Mal.SourceGeneratedDI/Mal.SourceGeneratedDI.csproj
+        run: dotnet restore Mal.SourceGeneratedDI.slnx
 
       - name: Build solution
-        run: dotnet build Mal.SourceGeneratedDI/Mal.SourceGeneratedDI.csproj --configuration Release --no-restore
+        run: dotnet build Mal.SourceGeneratedDI.slnx --configuration Release --no-restore
 
-      - name: Pack NuGet package
+      - name: Pack generator package
         run: dotnet pack Mal.SourceGeneratedDI/Mal.SourceGeneratedDI.csproj --configuration Release --no-build --output ${{ env.NuGetDirectory }}
+
+      - name: Pack abstractions package
+        run: dotnet pack Mal.SourceGeneratedDI.Abstractions/Mal.SourceGeneratedDI.Abstractions.csproj --configuration Release --no-build --output ${{ env.NuGetDirectory }}
 
       - name: Upload NuGet package artifact
         uses: actions/upload-artifact@v4

@@ -1,0 +1,6 @@
+v2.0.0
+   - Breaking: introduces required shared runtime contract package for v2 architecture.
+   - Added DI attributes shared across projects (`Singleton`, `Instance`, assembly-level variants).
+   - Added `IServiceRegistry` and `IRegistrationSource` for generated registry composition.
+   - Added runtime `DependencyContainerBuilder` with duplicate policy and optional fallback `IServiceProvider`.
+   - Added runtime `DependencyContainer` used to resolve merged registrations.
