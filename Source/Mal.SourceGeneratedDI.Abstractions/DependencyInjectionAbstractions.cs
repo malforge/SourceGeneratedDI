@@ -164,7 +164,7 @@ public sealed class DependencyContainerBuilder : IServiceRegistry
         if (factory == null)
             throw new ArgumentNullException(nameof(factory));
 
-        AddSingleton(typeof(TService), c => factory(c));
+        AddSingleton(typeof(TService), factory);
         return this;
     }
 

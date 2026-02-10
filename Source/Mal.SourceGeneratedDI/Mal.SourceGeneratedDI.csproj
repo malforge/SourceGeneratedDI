@@ -37,7 +37,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <ProjectReference Include="..\Mal.SourceGeneratedDI.Abstractions\Mal.SourceGeneratedDI.Abstractions.csproj" />
+        <ProjectReference Include="..\Mal.SourceGeneratedDI.Abstractions\Mal.SourceGeneratedDI.Abstractions.csproj" PrivateAssets="none" />
     </ItemGroup>
     
     <!-- Package the README -->
