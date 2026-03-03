@@ -1,3 +1,10 @@
+v2.0.2-pre.1
+   - Added `Container` property to `[Singleton]` and `[Instance]` attributes for named container routing
+   - Added `Namespace` and `Prefix` properties to `[DependencyContainerOptions]` for controlling generated type names
+   - Breaking: Generated registry class renamed from `<Assembly>GeneratedRegistry` to `GeneratedRegistry` (in assembly root namespace)
+   - Named containers generate additional registry classes (e.g. `Container = "Window"` produces `WindowGeneratedRegistry`)
+   - Analyzer validates container names, prefix, and namespace are valid C# identifiers (DI004, DI005, DI006)
+
 v2.0.1
    - Breaking: Removed `DependencyContainer.Create()` static method and direct constructors - use `DependencyContainerBuilder` only
    - Breaking: Renamed `Register<T>()` methods to `RegisterSingleton<T>()` and added `RegisterInstance<T>()` for explicit lifetime control

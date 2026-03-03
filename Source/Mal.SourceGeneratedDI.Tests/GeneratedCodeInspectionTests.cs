@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace Mal.SourceGeneratedDI;
 
 [TestFixture]
-public class GeneratedCodeInspectionTests
+public class GeneratedCodeInspectionTests : GeneratorTestBase
 {
     [OneTimeSetUp]
     public void Setup()
@@ -38,9 +38,9 @@ public class GeneratedCodeInspectionTests
         File.WriteAllText(outputPath, generatedCode);
 
         TestContext.Out.WriteLine($"✓ Builder ENABLED code written to: {outputPath}");
-        Assert.That(generatedCode, Does.Contain("public sealed partial class TestAssemblyGeneratedRegistry"));
-        Assert.That(generatedCode, Does.Contain("public void Contribute(IServiceRegistry registry)"));
-        Assert.That(generatedCode, Does.Contain("static partial void AddManualFactories(IServiceRegistry registry);"));
+        Assert.That(generatedCode, Does.Contain("public sealed partial class GeneratedRegistry"));
+        Assert.That(generatedCode, Does.Contain("public void Contribute(global::Mal.SourceGeneratedDI.IServiceRegistry registry)"));
+        Assert.That(generatedCode, Does.Contain("static partial void AddManualFactories(global::Mal.SourceGeneratedDI.IServiceRegistry registry);"));
     }
 
     [Test]
@@ -62,8 +62,8 @@ public class GeneratedCodeInspectionTests
         File.WriteAllText(outputPath, generatedCode);
 
         TestContext.Out.WriteLine($"✓ Builder DISABLED code written to: {outputPath}");
-        Assert.That(generatedCode, Does.Contain("public static class TestAssemblyGeneratedContainerFactory"));
-        Assert.That(generatedCode, Does.Contain("builder.AddRegistry(new TestAssemblyGeneratedRegistry());"));
+        Assert.That(generatedCode, Does.Contain("public sealed partial class GeneratedRegistry"));
+        Assert.That(generatedCode, Does.Not.Contain("ContainerFactory"));
     }
 
     [Test]
@@ -87,37 +87,10 @@ public class GeneratedCodeInspectionTests
         File.WriteAllText(outputPath, generatedCode);
 
         TestContext.Out.WriteLine($"✓ INTERNAL visibility code written to: {outputPath}");
-        Assert.That(generatedCode, Does.Contain("TestAssemblyGeneratedRegistry"));
-        Assert.That(generatedCode, Does.Contain("TestAssemblyGeneratedContainerFactory"));
+        Assert.That(generatedCode, Does.Contain("internal sealed partial class GeneratedRegistry"));
+        Assert.That(generatedCode, Does.Not.Contain("ContainerFactory"));
     }
 
-    private string GenerateCode(string source)
-    {
-        // Create a compilation
-        var syntaxTree = CSharpSyntaxTree.ParseText(source);
-        var references = new[]
-        {
-            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(IDependencyContainer).Assembly.Location)
-        };
-
-        var compilation = CSharpCompilation.Create(
-            "TestAssembly",
-            [syntaxTree],
-            references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-        // Run the generator
-        var generator = new DependencyRegistryGenerator();
-        var driver = CSharpGeneratorDriver.Create(generator);
-        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _);
-
-        // Get the generated source
-        var runResult = driver.GetRunResult();
-        var generatedTree =
-            runResult.GeneratedTrees.FirstOrDefault(t => t.FilePath.Contains("DependencyRegistry.g.cs"));
-
-        return generatedTree?.ToString() ?? "NO CODE GENERATED";
-    }
+    private string GenerateCode(string source, string fileHint = "GeneratedRegistry.g.cs")
+        => GenerateFile(source, fileHint);
 }

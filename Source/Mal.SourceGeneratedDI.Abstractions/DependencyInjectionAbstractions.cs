@@ -10,6 +10,12 @@ namespace Mal.SourceGeneratedDI;
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
 public sealed class SingletonAttribute : Attribute
 {
+    /// <summary>
+    /// The name of the container registry to register this service in.
+    /// If not specified, the service is registered in the default (unnamed) registry.
+    /// The name must be a valid C# identifier segment.
+    /// </summary>
+    public string? Container { get; set; }
 }
 
 /// <summary>
@@ -18,6 +24,12 @@ public sealed class SingletonAttribute : Attribute
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
 public sealed class SingletonAttribute<TService> : Attribute where TService : class
 {
+    /// <summary>
+    /// The name of the container registry to register this service in.
+    /// If not specified, the service is registered in the default (unnamed) registry.
+    /// The name must be a valid C# identifier segment.
+    /// </summary>
+    public string? Container { get; set; }
 }
 
 /// <summary>
@@ -28,6 +40,12 @@ public sealed class SingletonAttribute<TService, TImplementation> : Attribute
     where TService : class
     where TImplementation : class, TService
 {
+    /// <summary>
+    /// The name of the container registry to register this service in.
+    /// If not specified, the service is registered in the default (unnamed) registry.
+    /// The name must be a valid C# identifier segment.
+    /// </summary>
+    public string? Container { get; set; }
 }
 
 /// <summary>
@@ -36,6 +54,12 @@ public sealed class SingletonAttribute<TService, TImplementation> : Attribute
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
 public sealed class InstanceAttribute : Attribute
 {
+    /// <summary>
+    /// The name of the container registry to register this service in.
+    /// If not specified, the service is registered in the default (unnamed) registry.
+    /// The name must be a valid C# identifier segment.
+    /// </summary>
+    public string? Container { get; set; }
 }
 
 /// <summary>
@@ -44,6 +68,12 @@ public sealed class InstanceAttribute : Attribute
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
 public sealed class InstanceAttribute<TService> : Attribute where TService : class
 {
+    /// <summary>
+    /// The name of the container registry to register this service in.
+    /// If not specified, the service is registered in the default (unnamed) registry.
+    /// The name must be a valid C# identifier segment.
+    /// </summary>
+    public string? Container { get; set; }
 }
 
 /// <summary>
@@ -54,15 +84,35 @@ public sealed class InstanceAttribute<TService, TImplementation> : Attribute
     where TService : class
     where TImplementation : class, TService
 {
+    /// <summary>
+    /// The name of the container registry to register this service in.
+    /// If not specified, the service is registered in the default (unnamed) registry.
+    /// The name must be a valid C# identifier segment.
+    /// </summary>
+    public string? Container { get; set; }
 }
 
 /// <summary>
-/// Configures generated container options.
+/// Configures generated container options for this assembly.
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = false)]
 public sealed class DependencyContainerOptionsAttribute : Attribute
 {
     public ContainerVisibility Visibility { get; set; } = ContainerVisibility.Public;
+    
+    /// <summary>
+    /// The namespace in which to generate registry classes.
+    /// Defaults to the assembly's root namespace.
+    /// </summary>
+    public string? Namespace { get; set; }
+    
+    /// <summary>
+    /// An optional prefix prepended to all generated registry class names.
+    /// Must be a valid C# identifier segment. Defaults to no prefix.
+    /// Example: Prefix = "Hub" generates HubRegistry, HubWindowRegistry, etc.
+    /// </summary>
+    public string? Prefix { get; set; }
+    
     public bool EnableBuilder { get; set; }
 }
 
