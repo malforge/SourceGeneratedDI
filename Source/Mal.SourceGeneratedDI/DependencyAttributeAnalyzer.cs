@@ -11,6 +11,9 @@ public class DependencyAttributeAnalyzer : DiagnosticAnalyzer
     public const string MixedLifetimeDiagnosticId = "DI001";
     public const string InvalidServiceTypeDiagnosticId = "DI002";
     public const string RedundantServiceTypeDiagnosticId = "DI003";
+    public const string InvalidContainerNameDiagnosticId = "DI004";
+    public const string InvalidPrefixDiagnosticId = "DI005";
+    public const string InvalidNamespaceDiagnosticId = "DI006";
 
     private static readonly DiagnosticDescriptor MixedLifetimeRule = new(
         MixedLifetimeDiagnosticId,
@@ -40,8 +43,36 @@ public class DependencyAttributeAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "When registering a type as itself, the generic type parameter is unnecessary.");
 
+    private static readonly DiagnosticDescriptor InvalidContainerNameRule = new(
+        InvalidContainerNameDiagnosticId,
+        "Invalid container name",
+        "Container name '{0}' is not a valid C# identifier. Container names must start with a letter or underscore and contain only letters, digits, and underscores.",
+        "DependencyInjection",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Container names are used as part of the generated registry class name and must be valid C# identifier segments.");
+
+    private static readonly DiagnosticDescriptor InvalidPrefixRule = new(
+        InvalidPrefixDiagnosticId,
+        "Invalid registry prefix",
+        "Prefix '{0}' is not a valid C# identifier. The prefix must start with a letter or underscore and contain only letters, digits, and underscores.",
+        "DependencyInjection",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The Prefix in DependencyContainerOptions is prepended to generated registry class names and must be a valid C# identifier segment.");
+
+    private static readonly DiagnosticDescriptor InvalidNamespaceRule = new(
+        InvalidNamespaceDiagnosticId,
+        "Invalid registry namespace",
+        "Namespace '{0}' is not a valid C# namespace. Each segment must be a valid identifier.",
+        "DependencyInjection",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The Namespace in DependencyContainerOptions must be a valid C# namespace.");
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => 
-        ImmutableArray.Create(MixedLifetimeRule, InvalidServiceTypeRule, RedundantServiceTypeRule);
+        ImmutableArray.Create(MixedLifetimeRule, InvalidServiceTypeRule, RedundantServiceTypeRule,
+            InvalidContainerNameRule, InvalidPrefixRule, InvalidNamespaceRule);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -51,11 +82,18 @@ public class DependencyAttributeAnalyzer : DiagnosticAnalyzer
         context.RegisterCompilationAction(AnalyzeAssembly);
     }
 
+    private static bool IsValidIdentifier(string name)
+        => !string.IsNullOrEmpty(name)
+           && (char.IsLetter(name[0]) || name[0] == '_')
+           && name.All(c => char.IsLetterOrDigit(c) || c == '_');
+
+    private static bool IsValidNamespace(string ns)
+        => !string.IsNullOrEmpty(ns) && ns.Split('.').All(IsValidIdentifier);
+
     private static void AnalyzeNamedType(SymbolAnalysisContext context)
     {
         var namedType = (INamedTypeSymbol)context.Symbol;
         
-        // Only analyze classes
         if (namedType.TypeKind != TypeKind.Class)
             return;
 
@@ -71,50 +109,56 @@ public class DependencyAttributeAnalyzer : DiagnosticAnalyzer
             var isSingleton = attr.AttributeClass.Name is "SingletonAttribute" or "Singleton";
             var isInstance = attr.AttributeClass.Name is "InstanceAttribute" or "Instance";
 
-            if (isSingleton)
-                hasSingleton = true;
-            if (isInstance)
-                hasInstance = true;
+            if (isSingleton) hasSingleton = true;
+            if (isInstance) hasInstance = true;
+
+            // Validate Container name
+            foreach (var namedArg in attr.NamedArguments)
+            {
+                if (namedArg.Key == "Container" && namedArg.Value.Value is string containerName)
+                {
+                    if (!IsValidIdentifier(containerName))
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            InvalidContainerNameRule,
+                            attr.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? namedType.Locations[0],
+                            containerName));
+                    }
+                }
+            }
 
             // Check for invalid service type (generic attributes only)
             if (attr.AttributeClass.Arity == 1)
             {
                 var serviceType = attr.AttributeClass.TypeArguments[0];
                 
-                // Check for redundant self-registration (e.g., MyClass has [Singleton<MyClass>])
                 if (SymbolEqualityComparer.Default.Equals(serviceType, namedType))
                 {
                     var attributeName = isSingleton ? "Singleton" : "Instance";
-                    var diagnostic = Diagnostic.Create(
+                    context.ReportDiagnostic(Diagnostic.Create(
                         RedundantServiceTypeRule,
                         attr.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? namedType.Locations[0],
                         namedType.Name,
-                        attributeName);
-                    context.ReportDiagnostic(diagnostic);
+                        attributeName));
                 }
-                // Check if implementation is assignable to service type
-                // An implementation can be used as the service type if there's an implicit conversion
                 else if (!namedType.AllInterfaces.Contains(serviceType, SymbolEqualityComparer.Default) &&
                     !IsBaseTypeOf(serviceType, namedType))
                 {
-                    var diagnostic = Diagnostic.Create(
+                    context.ReportDiagnostic(Diagnostic.Create(
                         InvalidServiceTypeRule,
                         attr.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? namedType.Locations[0],
                         namedType.Name,
-                        serviceType.ToDisplayString());
-                    context.ReportDiagnostic(diagnostic);
+                        serviceType.ToDisplayString()));
                 }
             }
         }
 
-        // Check for mixed lifetime attributes
         if (hasSingleton && hasInstance)
         {
-            var diagnostic = Diagnostic.Create(
+            context.ReportDiagnostic(Diagnostic.Create(
                 MixedLifetimeRule,
                 namedType.Locations[0],
-                namedType.Name);
-            context.ReportDiagnostic(diagnostic);
+                namedType.Name));
         }
     }
 
@@ -137,40 +181,73 @@ public class DependencyAttributeAnalyzer : DiagnosticAnalyzer
 
         foreach (var attr in assemblyAttributes)
         {
+            // Validate DependencyContainerOptions Prefix and Namespace
+            if (attr.AttributeClass?.Name is "DependencyContainerOptionsAttribute" or "DependencyContainerOptions")
+            {
+                foreach (var namedArg in attr.NamedArguments)
+                {
+                    if (namedArg.Key == "Prefix" && namedArg.Value.Value is string prefix && prefix.Length > 0)
+                    {
+                        if (!IsValidIdentifier(prefix))
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                InvalidPrefixRule,
+                                attr.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? Location.None,
+                                prefix));
+                        }
+                    }
+                    else if (namedArg.Key == "Namespace" && namedArg.Value.Value is string ns && ns.Length > 0)
+                    {
+                        if (!IsValidNamespace(ns))
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                InvalidNamespaceRule,
+                                attr.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? Location.None,
+                                ns));
+                        }
+                    }
+                }
+            }
+
             if (attr.AttributeClass is not { Name: "SingletonAttribute" or "Singleton" or "InstanceAttribute" or "Instance" })
                 continue;
 
-            // Assembly-level attributes always have arity 2 (enforced by AttributeTargets)
             if (attr.AttributeClass.Arity != 2)
                 continue;
+
+            // Validate Container name on assembly-level attributes
+            foreach (var namedArg in attr.NamedArguments)
+            {
+                if (namedArg.Key == "Container" && namedArg.Value.Value is string containerName)
+                {
+                    if (!IsValidIdentifier(containerName))
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            InvalidContainerNameRule,
+                            attr.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? Location.None,
+                            containerName));
+                    }
+                }
+            }
 
             var serviceType = attr.AttributeClass.TypeArguments[0];
             var implementationType = attr.AttributeClass.TypeArguments[1];
 
-            // Check if implementation is assignable to service type
-            // The constraint "where TImplementation : TService" enforces this at compile time,
-            // but we validate it here for better error messages
             if (implementationType is INamedTypeSymbol namedImpl)
             {
                 if (!SymbolEqualityComparer.Default.Equals(serviceType, implementationType) &&
                     !namedImpl.AllInterfaces.Contains(serviceType, SymbolEqualityComparer.Default) &&
                     !IsBaseTypeOf(serviceType, namedImpl))
                 {
-                    var diagnostic = Diagnostic.Create(
+                    context.ReportDiagnostic(Diagnostic.Create(
                         InvalidServiceTypeRule,
                         attr.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? Location.None,
                         implementationType.ToDisplayString(),
-                        serviceType.ToDisplayString());
-                    context.ReportDiagnostic(diagnostic);
+                        serviceType.ToDisplayString()));
                 }
             }
 
-            // Track duplicate service registrations
-            if (!registeredServices.Add(serviceType))
-            {
-                // Note: This is informational only - generator handles last-wins
-                // Could add a diagnostic here if desired
-            }
+            registeredServices.Add(serviceType);
         }
     }
 }

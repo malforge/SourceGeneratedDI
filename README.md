@@ -17,9 +17,12 @@ Source-generated dependency injection with compile-time registrations and runtim
   - [Assembly-Level Registrations](#assembly-level-registrations)
   - [Lazy Dependencies](#lazy-dependencies)
   - [Cross-Assembly Composition](#cross-assembly-composition)
+  - [Named Containers](#named-containers)
   - [Manual Registrations](#manual-registrations)
   - [Fallback Provider](#fallback-provider)
   - [Duplicate Registration Policy](#duplicate-registration-policy)
+  - [Customizing Generated Class Names](#customizing-generated-class-names)
+- [Analyzer Diagnostics](#analyzer-diagnostics)
 - [License](#license)
 
 ## Quick Start
@@ -52,8 +55,9 @@ public class RequestHandler
 
 **2. Build and resolve**
 ```csharp
+// GeneratedRegistry is auto-generated in your assembly's root namespace
 var container = new DependencyContainerBuilder()
-    .AddRegistry<MyAppGeneratedRegistry>() // auto-generated
+    .AddRegistry<GeneratedRegistry>()
     .Build();
 
 var handler = container.Resolve<RequestHandler>();
@@ -72,7 +76,7 @@ var service = container.Resolve<MyService>();
 **After (v2)**
 ```csharp
 var container = new DependencyContainerBuilder()
-    .AddRegistry<MyAppGeneratedRegistry>()
+    .AddRegistry<GeneratedRegistry>()
     .Build();
     
 var service = container.Resolve<MyService>();
@@ -143,11 +147,12 @@ public class UserRepository
 
 ### The Container
 
-The source generator creates a registry class for your assembly (e.g., `MyAppGeneratedRegistry`). You compose one or more registries into a container, then resolve services:
+The source generator creates a `GeneratedRegistry` class in your assembly's root namespace. You compose one or more registries into a container, then resolve services:
 
 ```csharp
+// MyApp.dll → MyApp.GeneratedRegistry
 var container = new DependencyContainerBuilder()
-    .AddRegistry<MyAppGeneratedRegistry>()
+    .AddRegistry<GeneratedRegistry>()
     .Build();
 
 var userRepo = container.Resolve<UserRepository>();
@@ -232,14 +237,64 @@ When your application uses multiple libraries that each contribute services, com
 
 ```csharp
 var container = new DependencyContainerBuilder()
-    .AddRegistry<CoreLibGeneratedRegistry>()      // From CoreLib.dll
-    .AddRegistry<FeatureAGeneratedRegistry>()     // From FeatureA.dll
-    .AddRegistry<FeatureBGeneratedRegistry>()     // From FeatureB.dll
-    .AddRegistry<MyAppGeneratedRegistry>()        // From your app
+    .AddRegistry<CoreLib.GeneratedRegistry>()      // From CoreLib.dll
+    .AddRegistry<FeatureA.GeneratedRegistry>()     // From FeatureA.dll
+    .AddRegistry<FeatureB.GeneratedRegistry>()     // From FeatureB.dll
+    .AddRegistry<GeneratedRegistry>()              // From your app
     .Build();
 ```
 
-Each assembly that references the source generator will have its own generated registry.
+Each assembly that references the source generator will have its own `GeneratedRegistry` in its own root namespace.
+
+### Named Containers
+
+When different parts of your application need isolated sets of services — for example, per-window services in a multi-window desktop app — use named containers.
+
+**Marking services for a named container**
+```csharp
+// Goes into the default GeneratedRegistry
+[Singleton]
+public class AppSettingsService { }
+
+// Goes into WindowGeneratedRegistry
+[Singleton(Container = "Window")]
+public class OverlayService { }
+
+[Singleton<IOverlayService>(Container = "Window")]
+public class OverlayService : IOverlayService { }
+```
+
+The `Container` name becomes part of the generated class name: `Container = "Window"` → `WindowGeneratedRegistry`.
+
+**Composing named and default registries**
+
+Each registry is independent. Because `Container = "Window"` explicitly partitions services, there should be no overlap between `WindowGeneratedRegistry` and `GeneratedRegistry` — so you can compose them directly without any duplicate policy:
+
+```csharp
+var windowContainer = new DependencyContainerBuilder()
+    .AddRegistry<WindowGeneratedRegistry>()
+    .AddRegistry<GeneratedRegistry>()
+    .Build();
+```
+
+The default policy is `Throw`, which means any accidental duplicate registration will surface immediately as a build-time error rather than silently misbehaving at runtime. This is intentional: if you're partitioning services correctly, duplicates shouldn't exist. The error is a signal that your partitioning needs attention.
+
+If you have a situation where duplicates are genuinely unavoidable — for example, composing third-party registries you don't control — you can opt out:
+
+```csharp
+var windowContainer = new DependencyContainerBuilder()
+    .WithDuplicatePolicy(DuplicateRegistrationPolicy.FirstWins)
+    .AddRegistry<WindowGeneratedRegistry>()  // window-specific services win
+    .AddRegistry<GeneratedRegistry>()
+    .Build();
+```
+
+Every window gets its own container instance with its own `OverlayService`, while all windows share the same `AppSettingsService`.
+
+**Assembly-level attributes**
+```csharp
+[assembly: Singleton<IOverlayService, OverlayService>(Container = "Window")]
+```
 
 ### Manual Registrations
 
@@ -248,7 +303,7 @@ Sometimes you need to register services at runtime:
 **Option 1: Host-level (in your startup code)**
 ```csharp
 var container = new DependencyContainerBuilder()
-    .AddRegistry<MyAppGeneratedRegistry>()
+    .AddRegistry<GeneratedRegistry>()
     .RegisterSingleton<IClock>(() => new UtcClock())
     .RegisterInstance<IConfig>(() => LoadConfigFromFile())
     .Build();
@@ -256,10 +311,10 @@ var container = new DependencyContainerBuilder()
 
 **Option 2: Assembly-level (via partial method)**
 ```csharp
-// In your project, create a partial class
-namespace Mal.SourceGeneratedDI;
+// In your project, create a partial class matching your assembly's root namespace
+namespace MyApp;
 
-public sealed partial class MyAppGeneratedRegistry
+public sealed partial class GeneratedRegistry
 {
     static partial void AddManualFactories(IServiceRegistry registry)
     {
@@ -277,7 +332,7 @@ Integrate with other DI systems (like ASP.NET Core's built-in DI):
 
 ```csharp
 var container = new DependencyContainerBuilder()
-    .AddRegistry<MyAppGeneratedRegistry>()
+    .AddRegistry<GeneratedRegistry>()
     .UseFallback(serviceProvider)  // IServiceProvider from another DI system
     .Build();
 ```
@@ -292,7 +347,7 @@ When composing multiple registries, you might register the same service twice:
 var container = new DependencyContainerBuilder()
     .WithDuplicatePolicy(DuplicateRegistrationPolicy.LastWins)
     .AddRegistry<LibraryGeneratedRegistry>()  // Registers ILogger
-    .AddRegistry<MyAppGeneratedRegistry>()    // Also registers ILogger
+    .AddRegistry<GeneratedRegistry>()         // Also registers ILogger
     .Build();
 ```
 
@@ -300,6 +355,33 @@ Options:
 - `Throw` (default) - Throws an exception on duplicate
 - `FirstWins` - Keeps the first registration
 - `LastWins` - Overwrites with the last registration
+
+### Customizing Generated Class Names
+
+By default the generated class is named `GeneratedRegistry` in your assembly's root namespace. You can override this with `[assembly: DependencyContainerOptions(...)]`:
+
+```csharp
+[assembly: DependencyContainerOptions(
+    Namespace = "MyApp.DI",   // Default: assembly root namespace
+    Prefix    = "Hub"         // Default: no prefix
+)]
+```
+
+With `Prefix = "Hub"`, the generated classes become `HubGeneratedRegistry`, `HubWindowGeneratedRegistry`, etc.
+With `Namespace = "MyApp.DI"`, they are placed in that namespace instead.
+
+## Analyzer Diagnostics
+
+The following diagnostics are produced by the included Roslyn analyzer:
+
+| ID    | Severity | Description |
+|-------|----------|-------------|
+| DI001 | Error    | A class has both `[Singleton]` and `[Instance]` attributes — pick one lifetime. |
+| DI002 | Error    | The service type in `[Singleton<T>]` is not assignable from the implementation. |
+| DI003 | Warning  | `[Singleton<MyClass>]` on `MyClass` is redundant — use plain `[Singleton]`. |
+| DI004 | Error    | `Container = "..."` value is not a valid C# identifier. |
+| DI005 | Error    | `Prefix = "..."` in `[DependencyContainerOptions]` is not a valid C# identifier. |
+| DI006 | Error    | `Namespace = "..."` in `[DependencyContainerOptions]` is not a valid C# namespace. |
 
 ## License
 
@@ -324,3 +406,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+

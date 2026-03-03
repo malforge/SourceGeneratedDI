@@ -43,6 +43,48 @@ public abstract class GeneratorTestBase
         TestContext.Out.WriteLine($"\n{new string('=', 80)}\n");
     }
 
+    /// <summary>
+    /// Runs the generator on the given source and returns the content of the named generated file.
+    /// </summary>
+    protected static string GenerateFile(string source, string fileHint = "GeneratedRegistry.g.cs")
+    {
+        var runResult = RunGenerator(source);
+        var tree = runResult.GeneratedTrees.FirstOrDefault(t => t.FilePath.Contains(fileHint));
+        return tree?.ToString() ?? "NO CODE GENERATED";
+    }
+
+    /// <summary>
+    /// Runs the generator on the given source and returns all generated file contents keyed by hint name.
+    /// </summary>
+    protected static Dictionary<string, string> GenerateAllFiles(string source)
+    {
+        var runResult = RunGenerator(source);
+        return runResult.GeneratedTrees.ToDictionary(
+            t => Path.GetFileName(t.FilePath),
+            t => t.ToString());
+    }
+
+    private static GeneratorDriverRunResult RunGenerator(string source)
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText(source);
+        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+            .Split(Path.PathSeparator)
+            .Select(p => (MetadataReference)MetadataReference.CreateFromFile(p))
+            .Append(MetadataReference.CreateFromFile(typeof(IDependencyContainer).Assembly.Location))
+            .ToArray();
+
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            [syntaxTree],
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        var generator = new DependencyRegistryGenerator();
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _);
+        return driver.GetRunResult();
+    }
+
     private Compilation CreateCompilation(string[] sources)
     {
         var syntaxTrees = sources.Select(s => CSharpSyntaxTree.ParseText(s)).ToArray();

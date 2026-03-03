@@ -36,8 +36,9 @@ public class FactoryRegistrationTests : GeneratorTestBase
                         {
                             public static void Main()
                             {
-                                var container = new DependencyContainer(b => b
-                                    .Register<SimpleService>(() => new SimpleService { Value = "Custom" }));
+                                var container = new DependencyContainerBuilder()
+                                    .RegisterSingleton<SimpleService>(() => new SimpleService { Value = "Custom" })
+                                    .Build();
                                     
                                 var service = container.Resolve<SimpleService>();
                                 Console.WriteLine(service.Value);
@@ -91,9 +92,10 @@ public class FactoryRegistrationTests : GeneratorTestBase
                         {
                             public static void Main()
                             {
-                                var container = new DependencyContainer(b => b
-                                    .Register<CompositeService>(c => 
-                                        new CompositeService(c.Resolve<DependencyService>())));
+                                var container = new DependencyContainerBuilder()
+                                    .RegisterSingleton<CompositeService>(c => 
+                                        new CompositeService(c.Resolve<DependencyService>()))
+                                    .Build();
                                     
                                 var service = container.Resolve<CompositeService>();
                                 Console.WriteLine(service.Dependency.Value);
@@ -143,10 +145,11 @@ public class FactoryRegistrationTests : GeneratorTestBase
                         {
                             public static void Main()
                             {
-                                var container = new DependencyContainer(b => b
-                                    .Register<IServiceA>(() => new ServiceA())
-                                    .Register<IServiceB>(() => new ServiceB())
-                                    .Register<IServiceC>(() => new ServiceC()));
+                                var container = new DependencyContainerBuilder()
+                                    .RegisterSingleton<IServiceA>(() => new ServiceA())
+                                    .RegisterSingleton<IServiceB>(() => new ServiceB())
+                                    .RegisterSingleton<IServiceC>(() => new ServiceC())
+                                    .Build();
                                     
                                 var a = container.Resolve<IServiceA>();
                                 var b = container.Resolve<IServiceB>();
@@ -177,7 +180,7 @@ public class FactoryRegistrationTests : GeneratorTestBase
                     using System;
                     using Mal.SourceGeneratedDI;
 
-                    [assembly: DependencyContainerOptions(EnableBuilder = true)]
+                    [assembly: DependencyContainerOptions(EnableBuilder = true, Namespace = "TestNamespace")]
 
                     namespace TestNamespace
                     {
@@ -196,12 +199,14 @@ public class FactoryRegistrationTests : GeneratorTestBase
                         {
                             public static void Main()
                             {
-                                var container = new DependencyContainer(b => b
-                                    .Register<FactoryService>(() => new FactoryService { Value = "Custom" }));
+                                var container = new DependencyContainerBuilder()
+                                    .AddRegistry<GeneratedRegistry>()
+                                    .RegisterSingleton<FactoryService>(() => new FactoryService { Value = "Custom" })
+                                    .Build();
                                     
                                 var attrService = container.Resolve<AttributeService>();
                                 var factService = container.Resolve<FactoryService>();
-                                Console.WriteLine($"{{attrService.Value}}, {{factService.Value}}");
+                                Console.WriteLine($"{attrService.Value}, {factService.Value}");
                             }
                         }
                     }
@@ -228,7 +233,7 @@ public class FactoryRegistrationTests : GeneratorTestBase
                     using System;
                     using Mal.SourceGeneratedDI;
 
-                    [assembly: DependencyContainerOptions(EnableBuilder = true)]
+                    [assembly: DependencyContainerOptions(EnableBuilder = true, Namespace = "TestNamespace")]
 
                     namespace TestNamespace
                     {
@@ -242,8 +247,9 @@ public class FactoryRegistrationTests : GeneratorTestBase
                         {
                             public static void Main()
                             {
-                                // No builder, just attributes
-                                var container = new DependencyContainer();
+                                var container = new DependencyContainerBuilder()
+                                    .AddRegistry<GeneratedRegistry>()
+                                    .Build();
                                     
                                 var service = container.Resolve<AttributeService>();
                                 Console.WriteLine(service.Value);
@@ -309,11 +315,12 @@ public class FactoryRegistrationTests : GeneratorTestBase
                         {
                             public static void Main()
                             {
-                                var container = new DependencyContainer(b => b
-                                    .Register<MiddleService>(c => 
+                                var container = new DependencyContainerBuilder()
+                                    .RegisterSingleton<MiddleService>(c => 
                                         new MiddleService(c.Resolve<BaseService>()))
-                                    .Register<TopService>(c => 
-                                        new TopService(c.Resolve<MiddleService>(), c.Resolve<BaseService>())));
+                                    .RegisterSingleton<TopService>(c => 
+                                        new TopService(c.Resolve<MiddleService>(), c.Resolve<BaseService>()))
+                                    .Build();
                                     
                                 var top = container.Resolve<TopService>();
                                 Console.WriteLine(top.Base.Value);

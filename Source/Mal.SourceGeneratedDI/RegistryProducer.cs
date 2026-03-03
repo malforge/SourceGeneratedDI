@@ -12,15 +12,18 @@ public class RegistryProducer
     readonly ImmutableArray<DependencyRegistryGenerator.Item> _items;
     readonly DependencyRegistryGenerator.ContainerOptions _options;
     readonly string _registryClassName;
+    readonly string _namespace;
 
     public RegistryProducer(
         ImmutableArray<DependencyRegistryGenerator.Item> items,
         DependencyRegistryGenerator.ContainerOptions options,
-        string registryClassName)
+        string registryClassName,
+        string @namespace)
     {
         _items = items;
         _options = options;
         _registryClassName = registryClassName;
+        _namespace = @namespace;
     }
     
     const string RegistryTemplate =
@@ -29,15 +32,15 @@ public class RegistryProducer
         
         using System;
 
-        namespace Mal.SourceGeneratedDI;
+        namespace {{NAMESPACE}};
         
         /// <summary>
         /// Auto-generated registrations for this assembly.
         /// </summary>
-        {{VISIBILITY}} sealed partial class {{REGISTRY_CLASS}} : IRegistrationSource
+        {{VISIBILITY}} sealed partial class {{REGISTRY_CLASS}} : global::Mal.SourceGeneratedDI.IRegistrationSource
         {{
             /// <inheritdoc />
-            public void Contribute(IServiceRegistry registry)
+            public void Contribute(global::Mal.SourceGeneratedDI.IServiceRegistry registry)
             {{
                 {{REGISTRATIONS}}
                 AddManualFactories(registry);
@@ -48,7 +51,7 @@ public class RegistryProducer
             /// Implement this method in a separate partial class to add custom registrations.
             /// </summary>
             /// <param name="registry">The service registry to add registrations to.</param>
-            static partial void AddManualFactories(IServiceRegistry registry);
+            static partial void AddManualFactories(global::Mal.SourceGeneratedDI.IServiceRegistry registry);
         }}
         """;
 
@@ -137,6 +140,7 @@ public class RegistryProducer
         var visibility = _options.IsPublic ? "public" : "internal";
         
         var result = RegistryTemplate
+            .Replace("{{NAMESPACE}}", _namespace)
             .Replace("{{REGISTRY_CLASS}}", _registryClassName)
             .Replace("{{VISIBILITY}}", visibility)
             .Replace("{{REGISTRATIONS}}", string.Join("\n                ", items))
