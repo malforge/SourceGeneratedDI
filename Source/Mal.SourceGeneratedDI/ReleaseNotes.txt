@@ -1,3 +1,6 @@
+v2.0.2
+   - Public release
+  
 v2.0.2-pre.1
    - Named container support: `Container = "Window"` on attributes routes services to `WindowGeneratedRegistry`
    - Breaking: Default registry class renamed to `GeneratedRegistry` in assembly root namespace (no more mangled assembly name prefix)
