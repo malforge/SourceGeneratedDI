@@ -138,7 +138,7 @@ public enum DuplicateRegistrationPolicy
 /// <summary>
 /// Represents a simple dependency injection container that can resolve services.
 /// </summary>
-public interface IDependencyContainer
+public interface IDependencyContainer : IServiceProvider
 {
     T Resolve<T>() where T : class;
     bool TryResolve<T>(out T? instance) where T : class;

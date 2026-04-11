@@ -1,3 +1,6 @@
+v2.0.3
+   - IDependencyContainer now extends IServiceProvider for compatibility with generalized service consumers
+
 v2.0.2
    - Public release
   
